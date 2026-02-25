@@ -7,10 +7,12 @@ Reads STRIPE_API_KEY from .env.
 """
 
 import argparse
+import json
 import os
 import sys
 from collections import defaultdict
 from datetime import datetime, timezone
+from urllib.request import urlopen
 
 import stripe
 from dotenv import load_dotenv
@@ -37,6 +39,26 @@ def format_amount(amount_cents: int, currency: str) -> str:
     return f"{symbol}{amount_cents / 100:,.2f}"
 
 
+def fetch_eur_rates() -> dict[str, float]:
+    """Return exchange rates relative to EUR (e.g. {"RSD": 117.2, "USD": 1.08, ...})."""
+    with urlopen("https://open.er-api.com/v6/latest/EUR", timeout=10) as resp:
+        data = json.loads(resp.read())
+    if data.get("result") != "success":
+        raise RuntimeError(f"Exchange rate API error: {data}")
+    return {k.lower(): v for k, v in data["rates"].items()}
+
+
+def to_eur_cents(amount_cents: int, currency: str, rates: dict[str, float]) -> int:
+    """Convert an amount (in smallest currency unit) to EUR cents."""
+    cur = currency.lower()
+    if cur == "eur":
+        return amount_cents
+    rate = rates.get(cur)
+    if rate is None:
+        raise RuntimeError(f"No exchange rate found for {currency.upper()}")
+    return round(amount_cents / rate)
+
+
 def get_revenue(from_date: str, to_date: str) -> None:
     start_ts = int(datetime.strptime(from_date, "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp())
     # end of to_date: 23:59:59 UTC
@@ -44,30 +66,42 @@ def get_revenue(from_date: str, to_date: str) -> None:
         hour=23, minute=59, second=59, tzinfo=timezone.utc
     ).timestamp())
 
+    eur_rates = fetch_eur_rates()
+
+    # Stripe limits expand depth to 4 levels, so we cannot expand price.product inline.
+    # Instead we fetch products on demand and cache them.
+    product_cache: dict[str, str] = {}
+
+    def get_product_name(product_id: str) -> str:
+        if product_id not in product_cache:
+            try:
+                product = stripe.Product.retrieve(product_id)
+                product_cache[product_id] = product.get("name") or product_id
+            except stripe.error.StripeError:
+                product_cache[product_id] = product_id
+        return product_cache[product_id]
+
     sessions = stripe.checkout.Session.list(
         status="complete",
         created={"gte": start_ts, "lte": end_ts},
         expand=[
             "data.line_items",
             "data.line_items.data.price",
-            "data.line_items.data.price.product",
         ],
         limit=100,
     )
 
-    # product_id -> {"name": str, "revenue": int, "tickets": int, "currency": str}
-    by_show: dict[str, dict] = defaultdict(lambda: {"name": "", "revenue": 0, "tickets": 0, "currency": ""})
-    grand_total = 0
-    currency = ""
+    # product_id -> {"name": str, "revenue_eur": int, "tickets": int}
+    by_show: dict[str, dict] = defaultdict(lambda: {"name": "", "revenue_eur": 0, "tickets": 0})
+    grand_total_eur = 0
     session_count = 0
 
     for session in sessions.auto_paging_iter():
         session_count += 1
         session_currency = (session.get("currency") or "").lower()
-        if session_currency and not currency:
-            currency = session_currency
 
-        grand_total += session.get("amount_total") or 0
+        amount_total = session.get("amount_total") or 0
+        grand_total_eur += to_eur_cents(amount_total, session_currency, eur_rates)
 
         line_items = session.get("line_items")
         if not line_items:
@@ -75,37 +109,37 @@ def get_revenue(from_date: str, to_date: str) -> None:
 
         for item in line_items.get("data", []):
             price = item.get("price") or {}
-            product = price.get("product") or {}
-            if not isinstance(product, dict):
+            raw_product = price.get("product")
+            if not raw_product:
                 continue
-
-            product_id = product.get("id") or ""
-            product_name = product.get("name") or product_id
+            product_id = raw_product if isinstance(raw_product, str) else raw_product.get("id", "")
+            if not product_id:
+                continue
+            product_name = get_product_name(product_id)
             quantity = item.get("quantity") or 0
             unit_amount = price.get("unit_amount") or 0
-            item_revenue = quantity * unit_amount
+            item_revenue_eur = to_eur_cents(quantity * unit_amount, session_currency, eur_rates)
 
             show = by_show[product_id]
             show["name"] = product_name
-            show["revenue"] += item_revenue
+            show["revenue_eur"] += item_revenue_eur
             show["tickets"] += quantity
-            show["currency"] = session_currency
 
     if session_count == 0:
         print("No completed sales found for this period.")
         sys.exit(0)
 
     print(f"Period: {from_date} to {to_date}")
-    print(f"Gross revenue: {format_amount(grand_total, currency)}")
+    print(f"Gross revenue: {format_amount(grand_total_eur, 'eur')}")
     print(f"Transactions: {session_count}")
 
     if by_show:
         print()
         print("By show:")
         name_width = max(len(s["name"]) for s in by_show.values())
-        for show in sorted(by_show.values(), key=lambda s: -s["revenue"]):
+        for show in sorted(by_show.values(), key=lambda s: -s["revenue_eur"]):
             label = show["name"].ljust(name_width)
-            amount = format_amount(show["revenue"], show["currency"] or currency)
+            amount = format_amount(show["revenue_eur"], "eur")
             tickets = show["tickets"]
             print(f"  {label}  {amount} ({tickets} tickets)")
 
