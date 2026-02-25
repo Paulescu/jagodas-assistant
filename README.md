@@ -20,7 +20,32 @@ The main authors are Claude Code itself and her husband, who happens to be me, t
 My name is Pau Labarta Bajo, and I am an AI engineer working at Liquid AI. This project is my attempt to help my wife while spending minimum time — because hey, I already have a lot to do at Liquid AI.
 
 
-## Features TODO
+## Quickstart
+
+**Prerequisites:** Claude Code installed, and a `.env` file with `STRIPE_API_KEY` and `ANTHROPIC_API_KEY`.
+
+Open Claude Code in this folder, then run:
+
+### Export ticket buyers for a show
+
+```
+/export-stripe-attendees tonight's show
+/export-stripe-attendees my show in Belgrade on Friday
+/export-stripe-attendees prod_SGdlFX84k2ImuV
+```
+
+Claude matches your description to the right Stripe product, exports a CSV to `data/`, and prints a summary:
+
+```
+- Show: Kidaš Irena - 2026-02-25 u 20:00 - Beograd
+- Customers: 34 unique ticket buyers
+- File: data/customers_prod_SGdlFX84k2ImuV_2026-02-25.csv
+```
+
+If your description matches more than one show, Claude will ask you to pick the right one.
+
+
+## Features
 
 This list will change over time, mostly appending new items:
 

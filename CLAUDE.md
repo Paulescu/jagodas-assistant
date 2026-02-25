@@ -54,19 +54,28 @@ cp .env.example .env  # then add STRIPE_API_KEY and ANTHROPIC_API_KEY
 
 A `gitleaks` pre-commit hook runs on every commit and blocks any staged files containing secrets (API keys, tokens, credentials). Customer CSV files and `.env` are excluded via `.gitignore`.
 
+## Intent Routing
+
+When Jagoda types a message, map it to the right skill automatically — no slash commands needed.
+
+| If the message is about… | Invoke |
+|---|---|
+| Exporting attendees / customers / ticket buyers for a show | `export-stripe-attendees` skill, passing her description as the argument |
+
+Examples that should all trigger `export-stripe-attendees`:
+- "Export list of attendees for tomorrow's show"
+- "Get me the customer list for Belgrade on Friday"
+- "Who bought tickets for tonight?"
+- "Export the CSV for my show next week"
+
 ## How to Use (for Jagoda)
 
-Open Claude Code in this folder and run:
+Just open Claude Code in this folder and type naturally. For example:
 
-```
-/export-stripe-attendees <your show description>
-```
+- "Export list of attendees for tomorrow's show"
+- "Who bought tickets for my Belgrade show on Friday?"
 
-For example:
-- `/export-stripe-attendees tonight's show`
-- `/export-stripe-attendees my show in Belgrade on Friday`
-
-Claude will match the description to the right Stripe product and export the CSV.
+Claude will understand and handle the rest.
 
 ## Project Status
 
