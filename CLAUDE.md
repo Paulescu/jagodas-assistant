@@ -9,6 +9,8 @@ Jagoda's Assistant is a Claude Code-based automation tool for a Stand Up Comedia
 ## Current Features
 
 - Export emails and phone numbers of ticket buyers for a given show from Stripe.
+- Check revenue for a time period from Stripe.
+- Create a new Stripe product (show) with price, guided by a short conversation.
 
 ## Commands
 
@@ -30,6 +32,41 @@ If the query is ambiguous, the skill will ask a clarifying question. On success 
 ```
 
 Output files are never overwritten — a counter suffix (`_1`, `_2`, …) is added if the file already exists.
+
+### Check revenue for a period (skill)
+
+Use the `/get-revenue` skill with a natural language time period:
+
+```
+/get-revenue last 30 days
+/get-revenue this month
+/get-revenue last week
+```
+
+It prints a formatted summary:
+```
+Period: YYYY-MM-DD to YYYY-MM-DD
+Gross revenue: €1,250.00
+Transactions: 42
+
+By show:
+  Belgrade Comedy Night:  €750.00 (30 tickets)
+  Zagreb Special:         €500.00 (20 tickets)
+```
+
+### Create a new show in Stripe (skill)
+
+Use the `/create-stripe-show` skill. It walks through a short guided conversation:
+picks a reference show, asks for name/location/date/time, suggests a product name,
+confirms price and currency, then creates the Stripe product and price.
+
+On success it prints:
+```
+- Show: <name>
+- Price: <amount> <CURRENCY>
+- Stripe ID: <product_id>
+- Dashboard: <url>
+```
 
 ### Export ticket buyers for a show (scripts — advanced)
 
@@ -61,12 +98,24 @@ When Jagoda types a message, map it to the right skill automatically — no slas
 | If the message is about… | Invoke |
 |---|---|
 | Exporting attendees / customers / ticket buyers for a show | `export-stripe-attendees` skill, passing her description as the argument |
+| Revenue, earnings, sales totals, or how much was sold | `get-revenue` skill, passing her time period as the argument |
+| Creating a new show, adding a show to Stripe, setting up a new event | `create-stripe-show` skill (no arguments needed) |
 
 Examples that should all trigger `export-stripe-attendees`:
 - "Export list of attendees for tomorrow's show"
 - "Get me the customer list for Belgrade on Friday"
 - "Who bought tickets for tonight?"
 - "Export the CSV for my show next week"
+
+Examples that should all trigger `get-revenue`:
+- "How much have I sold in the last 30 days?"
+- "What's my revenue this month?"
+- "How much did I make last week?"
+
+Examples that should all trigger `create-stripe-show`:
+- "Create a new show for next Friday in Novi Sad"
+- "I need to add a show to Stripe"
+- "Set up a new event for March 15th"
 
 ## How to Use (for Jagoda)
 

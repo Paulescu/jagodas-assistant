@@ -53,4 +53,4 @@ This list will change over time, mostly appending new items:
 
 [] Add skill to create a new Stripe product for a new show. Ask the user which previous product they want to use as a refernce to copy, and from there ask the user what adjustments need to be made: including location, date, time, name of the show. With this info generate the product name. Ask also for the price, and force the user to explicitly set the currency too, as she performs both in Serbia and abroad.
 
-[] Add skill /get-revenue to check earnings. I want Jagoda to be able to ask "How much have I sold in the last 30 days" and this slash command is picked up by Claude Code. Implement this slash command the then add a route in the ## Intent Routing in CLAUDE.md so Jagoda does not need to remember the slash command.
+[x] Add skill /get-revenue to check earnings. I want Jagoda to be able to ask "How much have I sold in the last 30 days" and this slash command is picked up by Claude Code. Implement this slash command the then add a route in the ## Intent Routing in CLAUDE.md so Jagoda does not need to remember the slash command.
