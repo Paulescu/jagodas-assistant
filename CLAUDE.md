@@ -12,36 +12,61 @@ Jagoda's Assistant is a Claude Code-based automation tool for a Stand Up Comedia
 
 ## Commands
 
-### Export ticket buyers for a show (natural language)
+### Export ticket buyers for a show (skill — preferred)
 
-When asked to export customers for a show, run:
+Use the `/export-stripe-attendees` skill. It accepts a natural language description or a Stripe product ID:
 
-```bash
-uv run python scripts/export_customers_natural.py "<user's description>"
+```
+/export-stripe-attendees tonight's show
+/export-stripe-attendees my show in Belgrade on Friday
+/export-stripe-attendees prod_SGdlFX84k2ImuV
 ```
 
-Use the user's exact description as the query. Claude will match it to the right Stripe product and export the CSV.
+If the query is ambiguous, the skill will ask a clarifying question. On success it prints:
+```
+- Show: <show name>
+- Customers: <N> unique ticket buyers
+- File: data/customers_<product_id>_<date>.csv
+```
 
-### Export ticket buyers for a show (by product ID)
+Output files are never overwritten — a counter suffix (`_1`, `_2`, …) is added if the file already exists.
 
+### Export ticket buyers for a show (scripts — advanced)
+
+Natural language:
+```bash
+uv run python scripts/export_customers_natural.py "<description>"
+```
+
+By Stripe product ID:
 ```bash
 uv run python scripts/export_stripe_customers.py <STRIPE_PRODUCT_ID>
 ```
 
-First-time setup:
+### First-time setup
+
 ```bash
 uv sync
 cp .env.example .env  # then add STRIPE_API_KEY and ANTHROPIC_API_KEY
 ```
 
+## Security
+
+A `gitleaks` pre-commit hook runs on every commit and blocks any staged files containing secrets (API keys, tokens, credentials). Customer CSV files and `.env` are excluded via `.gitignore`.
+
 ## How to Use (for Jagoda)
 
-Just open Claude Code in this folder and type naturally, for example:
+Open Claude Code in this folder and run:
 
-- "Export customer details for my show tomorrow"
-- "Export the list for my show in Belgrad on Friday"
+```
+/export-stripe-attendees <your show description>
+```
 
-Claude will understand and handle the rest.
+For example:
+- `/export-stripe-attendees tonight's show`
+- `/export-stripe-attendees my show in Belgrade on Friday`
+
+Claude will match the description to the right Stripe product and export the CSV.
 
 ## Project Status
 
