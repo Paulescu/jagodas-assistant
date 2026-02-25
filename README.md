@@ -6,6 +6,8 @@ This project is a Claude Code based solution that can automate Jagoda's work.
 
 The set of initial features is limited, but it will keep on expanding pretty soon.
 
-## Features
+## Features TODO
 
-- Export of emails and phone numbers of people who bought tickets for a given show from Stripe.
+[x] Export of emails and phone numbers of people who bought tickets for a given show from Stripe.
+[] Create new products based on previous one using Stripe API, so I don't need to manually do it from Stripe's dashboard.
+
