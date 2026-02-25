@@ -74,6 +74,10 @@ def export_customers(product_id: str) -> None:
     Path("data").mkdir(exist_ok=True)
     today = date.today().strftime("%Y-%m-%d")
     output_path = Path(f"data/customers_{product_id}_{today}.csv")
+    counter = 1
+    while output_path.exists():
+        output_path = Path(f"data/customers_{product_id}_{today}_{counter}.csv")
+        counter += 1
 
     rows = sorted(
         [
